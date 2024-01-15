@@ -1,49 +1,14 @@
-import operator
-from datetime import datetime
+from utils.utils_code import *
 
-FILE = 'operations.json'
-EXECUTED_STATE = 'EXECUTED'
-
-
-def getpaymenttype(payment: str):
-    if 'счет' in payment.lower():
-        return f'{payment[:5]}**{payment[-2:]}'
-    else:
-        payment_type = f'{payment.split()[len(payment.split()) - 1]}'
-        card_type = f'{payment.replace(f" {payment_type}", "")}'
-        payment_type = payment_type[:-10] + '** **** ' + payment_type[12:]
-        payment_type = f'{card_type} {payment_type[:4]} {payment_type[4:]}'
-        return payment_type
+values = get_executed_operations(load_json_file())
+operations = sort_data_operations(values)
+data = format_date(operations)
+card_mask = card_number_mask(operations)
+amount_mask = amount_number_mask(operations)
 
 
-def parse(res):
-    count = 0
-    for i in res:
-        if count == 5:
-            return
-        if len(i) > 0 and i['state'] == EXECUTED_STATE:
-
-            datetime_str = i['date'].split('T')[0]
-            datetime_object = datetime.strptime(datetime_str, '%Y-%m-%d').date().strftime('%d.%m.%Y')
-            cost = f'{i["operationAmount"]["amount"]} {i["operationAmount"]["currency"]["name"]}'
-            print(f'{datetime_object} {i["description"]}')
-            if 'открытие' in i['description'].lower():
-                print(f'{getpaymenttype(i["to"])}')
-            else:
-                print(f'{getpaymenttype(i["from"])} -> {getpaymenttype(i["to"])}')
-            print(cost)
-            print()
-            count += 1
-
-
-try:
-    res = list()
-    with open(FILE, 'r') as fd:
-        res = list(eval(fd.read()))
-        fd.close()
-    parse(res)
-    tmp = [date for date in res if 'date' in date]
-    tmp.sort(key=operator.itemgetter('date'), reverse=True)
-    parse(tmp)
-except Exception as _ex:
-    print(f'Error: {_ex}')
+for operation in range(len(operations)):
+    print(f"{data[operation]} {operations[operation]['description']}\n"
+          f"{card_mask[operation]} -> Счет: {amount_mask[operation]}\n"
+          f"{operations[operation]['operationAmount']['amount']}"
+          f"{operations[operation]['operationAmount']['currency']['name']}\n")
